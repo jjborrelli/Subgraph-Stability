@@ -12,7 +12,7 @@ s5<-matrix(c(0,1,1,-1,0,0,-1,0,0),nrow=3,ncol=3)
 d1<-matrix(c(0,1,1,1,0,1,-1,-1,0),nrow=3,ncol=3)
 d2<-matrix(c(0,1,1,-1,0,1,-1,1,0),nrow=3,ncol=3)
 d3<-matrix(c(0,1,1,1,0,0,-1,0,0),nrow=3,ncol=3)
-#d4<-matrix(c(0,1,1,0,0,0,0,1,0),nrow=3,ncol=3)
+d4<-matrix(c(0,1,1,-1,0,0,1,0,0),nrow=3,ncol=3)
 d5<-matrix(c(0,1,1,-1,0,1,1,-1,0),nrow=3,ncol=3)
 d6<-matrix(c(0,1,1,1,0,1,1,1,0),nrow=3,ncol=3)
 d7<-matrix(c(0,1,1,1,0,1,1,-1,0),nrow=3,ncol=3)
@@ -20,59 +20,71 @@ d8<-matrix(c(0,1,1,1,0,0,1,0,0),nrow=3,ncol=3)
 
 # Create a list of all 13 matrices
 mot.lst <- list(s1, s2, s3, s4, s5, d1, d2, d3, d4, d5, d6, d7, d8)
+names(mot.lst) <- c("s1", "s2", "s3", "s4", "s5", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8")
 
-eigen_unif <- function(m, params, self = -1){
-  # For when I want to use uniform distribution
-  # Params is dataframe of mean and standard deviation for relative impact of prey on pred 
-  ## and pred on prey
-  ev <- c()
-  for(i in 1:nrow(m)){
-    for (j in 1:nrow(m)){
-      if(m[i, j] == 1){
-        m[i, j] <- runif(1, params$pred1, params$pred2)
-        m[j, i] <- runif(1, params$prey1, params$prey2)
-      }
-    }
-  }
-  diag(m) <- self
-  ev <- max(Re(eigen(m)$values))
-  return(ev)
-}
-
-
+## Functions to get eigenvalues of randomly sampled matrices
 ran.unif <- function(motmat){
   newmat <- apply(motmat, c(1,2), function(x){
     if(x==1){runif(1, 0, 10)}else if(x==-1){runif(1, -1, 0)} else{0}
   })
-  diag(newmat) <- runif(3, -1, 0)
+  diag(newmat) <- runif(1, -1, 0)
   return(newmat)
 }
 
+### using a lognormal
+ran.lnorm <- function(motmat){
+  newmat <- apply(motmat, c(1,2), function(x){
+    if(x==1){rlnorm(1, -1, 1)}else if(x==-1){-rlnorm(1, -5, 1)} else{0}
+  })
+  diag(newmat) <- -rlnorm(1, -5, 1)
+  return(newmat)
+}
+
+### Calculate largest eigenvalue (the real part)
 maxRE <- function(rmat){
   lam.max <- max(Re(eigen(rmat)$values))
   return(lam.max)
 }
 
+### Wrap previous two functions together
 eig.analysis <- function(n, matrices){
   cols <- length(matrices)
   rows <- n
   eigenMATRIX <- matrix(nrow = rows, ncol = cols)
   for(i in 1:n){
-    ranmat <- lapply(matrices, ran.unif)
+    ranmat <- lapply(matrices, ran.lnorm)
     eigs <- sapply(ranmat, maxRE)
     eigenMATRIX[i,] <- eigs
   }
   return(eigenMATRIX)
 }
 
+## Run
+n <- 10000
 system.time(
-  mot.stab<- eig.analysis(10000, mot.lst)
+  mot.stab<- eig.analysis(n, mot.lst)
 )
 
-boxplot(mot.stab)
-abline(h=0)
-ranmat <- lapply(mot.lst, ran.unif)
+colnames(mot.stab) <- names(mot.lst)
+
+require(reshape2)
+m <- melt(mot.stab)
+require(ggplot2)
+ggplot(m, aes(x = Var2, y = value)) + geom_boxplot() + geom_hline(aes(yintercept = 0))
 
 
+mot.qss <- apply(mot.stab, 2, function(x){sum(x<0)/n})
+sorted <- sort(mot.qss, decreasing = T)
+sort.qss <- data.frame(sorted, names = names(sorted))
 
-sapply(ranmat, maxRE)
+# Read in and reshape subgraph frequency data
+#motcount <- read.csv("~/Desktop/GitHub/Ecological-Networks/FoodWebs/Tables/zscore_both.csv", row.names = 1)
+#df.freq <- data.frame(motcount)
+
+#mfreq <- melt(df.freq[,names(sorted)])
+
+g <- ggplot(mfreq, aes(x = variable, y = value)) + geom_boxplot() 
+g <- g + geom_line(data = sort.qss, aes(x = 1:13, y = sorted))
+g <- g + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 2, col = "blue")
+g <- g + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
+g + xlab("Subgraph") + ylab("Frequency")
