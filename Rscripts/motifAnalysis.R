@@ -52,7 +52,7 @@ eig.analysis <- function(n, matrices){
   rows <- n
   eigenMATRIX <- matrix(nrow = rows, ncol = cols)
   for(i in 1:n){
-    ranmat <- lapply(matrices, ran.lnorm)
+    ranmat <- lapply(matrices, ran.unif)
     eigs <- sapply(ranmat, maxRE)
     eigenMATRIX[i,] <- eigs
   }
@@ -78,13 +78,14 @@ sorted <- sort(mot.qss, decreasing = T)
 sort.qss <- data.frame(sorted, names = names(sorted))
 
 # Read in and reshape subgraph frequency data
-#motcount <- read.csv("~/Desktop/GitHub/Ecological-Networks/FoodWebs/Tables/zscore_both.csv", row.names = 1)
-#df.freq <- data.frame(motcount)
+motcount <- read.csv("~/Desktop/GitHub/Ecological-Networks/FoodWebs/Tables/zscore_both.csv", row.names = 1)
+df.freq <- data.frame(motcount)
 
-#mfreq <- melt(df.freq[,names(sorted)])
+mfreq <- melt(df.freq[,names(sorted)])
 
 g <- ggplot(mfreq, aes(x = variable, y = value)) + geom_boxplot() 
-g <- g + geom_line(data = sort.qss, aes(x = 1:13, y = sorted))
-g <- g + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 2, col = "blue")
+g <- g + geom_line(data = sort.qss, aes(x = 1:13, y = sorted), size = 1.5)
+g <- g + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 4, col = "blue")
 g <- g + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
 g + xlab("Subgraph") + ylab("Frequency")
+
