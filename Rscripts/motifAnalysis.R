@@ -110,3 +110,11 @@ g <- g + geom_point(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 4, co
 g <- g + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
 g + xlab("Subgraph") + ylab("Frequency")
 
+
+
+## After loading food web data
+system.time(
+  fw.stab <- eig.analysis(1000, web.matrices, mode = "lnorm")
+)
+
+apply(fw.stab, 2, function(x){sum(x<0)/1000})
