@@ -47,35 +47,54 @@ maxRE <- function(rmat){
 }
 
 ### Wrap previous two functions together
-eig.analysis <- function(n, matrices){
+eig.analysis <- function(n, matrices, mode = "unif"){
   cols <- length(matrices)
   rows <- n
   eigenMATRIX <- matrix(nrow = rows, ncol = cols)
   for(i in 1:n){
-    ranmat <- lapply(matrices, ran.unif)
+    if(mode == "unif"){
+      ranmat <- lapply(matrices, ran.unif)
+    }else if(mode == "lnorm"){
+      ranmat <- lapply(matrices, ran.lnorm)
+    }
     eigs <- sapply(ranmat, maxRE)
     eigenMATRIX[i,] <- eigs
   }
   return(eigenMATRIX)
 }
 
-## Run
+## Run with uniform
 n <- 10000
 system.time(
-  mot.stab<- eig.analysis(n, mot.lst)
+  mot.stab<- eig.analysis(n, mot.lst, mode = "unif")
 )
 
 colnames(mot.stab) <- names(mot.lst)
 
+## Run with lognormal
+n <- 10000
+system.time(
+  mot.stab.l<- eig.analysis(n, mot.lst, mode = "lnorm")
+)
+
+colnames(mot.stab.l) <- names(mot.lst)
+
 require(reshape2)
 m <- melt(mot.stab)
+m.l <- melt(mot.stab.l)
 require(ggplot2)
+
 ggplot(m, aes(x = Var2, y = value)) + geom_boxplot() + geom_hline(aes(yintercept = 0))
+ggplot(m.l, aes(x = Var2, y = value)) + geom_boxplot() + geom_hline(aes(yintercept = 0))
 
-
+# Unif
 mot.qss <- apply(mot.stab, 2, function(x){sum(x<0)/n})
 sorted <- sort(mot.qss, decreasing = T)
 sort.qss <- data.frame(sorted, names = names(sorted))
+#Lnorm
+mot.qss.l <- apply(mot.stab.l, 2, function(x){sum(x<0)/n})
+sorted.l <- sort(mot.qss.l, decreasing = T)
+sort.qss.l <- data.frame(sorted.l, names = names(sorted))
 
 # Read in and reshape subgraph frequency data
 motcount <- read.csv("~/Desktop/GitHub/Ecological-Networks/FoodWebs/Tables/zscore_both.csv", row.names = 1)
@@ -86,6 +105,8 @@ mfreq <- melt(df.freq[,names(sorted)])
 g <- ggplot(mfreq, aes(x = variable, y = value)) + geom_boxplot() 
 g <- g + geom_line(data = sort.qss, aes(x = 1:13, y = sorted), size = 1.5)
 g <- g + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 4, col = "blue")
+g <- g + geom_line(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 1.5)
+g <- g + geom_point(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 4, col = "darkred")
 g <- g + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
 g + xlab("Subgraph") + ylab("Frequency")
 
