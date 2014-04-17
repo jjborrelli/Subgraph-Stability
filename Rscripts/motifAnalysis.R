@@ -50,7 +50,7 @@ maxRE <- function(rmat){
 eig.analysis <- function(n, matrices, mode = "unif"){
   cols <- length(matrices)
   rows <- n
-  eigenMATRIX <- matrix(nrow = rows, ncol = cols)
+  eigenMATRIX <- matrix(0, nrow = rows, ncol = cols)
   for(i in 1:n){
     if(mode == "unif"){
       ranmat <- lapply(matrices, ran.unif)
@@ -64,7 +64,7 @@ eig.analysis <- function(n, matrices, mode = "unif"){
 }
 
 ## Run with uniform
-n <- 10000
+n <- 5000
 system.time(
   mot.stab<- eig.analysis(n, mot.lst, mode = "unif")
 )
@@ -111,10 +111,28 @@ g <- g + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
 g + xlab("Subgraph") + ylab("Frequency")
 
 
-
 ## After loading food web data
+
+conversion <- function(tm){
+  for(i in 1:nrow(tm)){
+    for(j in 1:ncol(tm)){
+      if(tm[i,j] == 1){tm[j,i] <- -1}
+    }
+  }
+  return(tm)
+}
+
+webmats <- lapply(web.matrices, conversion)
+
+reps = 1000
 system.time(
-  fw.stab <- eig.analysis(1000, web.matrices, mode = "lnorm")
+  fw.stab.u <- eig.analysis(reps, webmats, mode = "unif")
 )
 
-apply(fw.stab, 2, function(x){sum(x<0)/1000})
+fwQSSu <- apply(fw.stab.u, 2, function(x){sum(x<0)/reps})
+
+system.time(
+  fw.stab.l <- eig.analysis(reps, webmats, mode = "lnorm")
+)
+
+fwQSSl <- apply(fw.stab.l, 2, function(x){sum(x<0)/reps})
