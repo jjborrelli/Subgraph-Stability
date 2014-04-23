@@ -22,6 +22,11 @@ d8<-matrix(c(0,1,1,1,0,0,1,0,0),nrow=3,ncol=3)
 mot.lst <- list(s1, s2, s3, s4, s5, d1, d2, d3, d4, d5, d6, d7, d8)
 names(mot.lst) <- c("s1", "s2", "s3", "s4", "s5", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8")
 
+# This shows that some of my motif matrices are WRONG
+# NEEDS TO BE FIXED!!!!
+testA2 <- lapply(mot.lst, graph.adjacency)
+motif_counter(testA2, webs = names(mot.lst))
+
 ## Functions to get eigenvalues of randomly sampled matrices
 ran.unif <- function(motmat){
   newmat <- apply(motmat, c(1,2), function(x){
