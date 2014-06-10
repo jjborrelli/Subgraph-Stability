@@ -102,7 +102,7 @@ sorted.l <- sort(mot.qss.l, decreasing = T)
 sort.qss.l <- data.frame(sorted.l, names = names(sorted))
 
 # Read in and reshape subgraph frequency data
-motcount <- read.csv("~/Desktop/GitHub/Ecological-Networks/FoodWebs/Tables/zscore_both.csv", row.names = 1)
+motcount <- read.csv("C:/Users/borre_000/Desktop/GitHub/Ecological-Networks/FoodWebs/Tables/zscore_both.csv", row.names = 1)
 df.freq <- data.frame(motcount)
 
 mfreq <- melt(df.freq[,names(sorted)])
@@ -116,28 +116,70 @@ g <- g + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
 g + xlab("Subgraph") + ylab("Frequency")
 
 
-## After loading food web data
+#######
 
-conversion <- function(tm){
-  for(i in 1:nrow(tm)){
-    for(j in 1:ncol(tm)){
-      if(tm[i,j] == 1){tm[j,i] <- -1}
+motif.df <- read.table("C:/Users/borre_000/Desktop/GitHub/Ecological-Networks/FoodWebs/Tables/motifCOUNTS.csv", header = T, sep = ",", row.names = 1)
+sub.counts <- motif.df[,2:14]
+row.names(sub.counts) <- motif.df[,1]
+
+permutes_prob <- function (mat, iter = 100, FUN, ...){
+  cS <- colSums(mat)/nrow(mat)
+  rS <- rowSums(mat)/ncol(mat)
+  pmat <- matrix(0, nrow = nrow(mat), ncol = ncol(mat))
+  for (i in 1:nrow(mat)) {
+    for (j in 1:ncol(mat)) {
+      pmat[i, j] <- sum((rS[i] + cS[j])/2)
     }
   }
-  return(tm)
+  res <- list()
+  for (q in 1:iter) {
+    mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat))
+    for (i in 1:nrow(mat)) {
+      for (j in 1:ncol(mat)) {
+        mat2[i, j] <- rbinom(1, 1, prob = pmat[i, j])
+      }
+    }
+    res[[q]] <- FUN(list(graph.adjacency(mat2)), ...)
+  }
+  return(res)
 }
 
-webmats <- lapply(web.matrices, conversion)
 
-reps = 1000
+require(data.table)
+require(doSNOW)
+require(foreach)
+
+clus <- makeCluster(3, "SOCK")
+clusterExport(cl = clus, list = c("rbindlist", "permutes_prob", "motif_counter"))
+registerDoSNOW(cl)
+
 system.time(
-  fw.stab.u <- eig.analysis(reps, webmats, mode = "unif")
+pmat <- parLapply(cl, web.matrices, function(x){rbindlist(permutes_prob(x, iter = 1000, FUN = motif_counter, webs = 1))})
 )
+#45 min for 1000 iterations
 
-fwQSSu <- apply(fw.stab.u, 2, function(x){sum(x<0)/reps})
+stopCluster(clus)
 
-system.time(
-  fw.stab.l <- eig.analysis(reps, webmats, mode = "lnorm")
-)
+nullmean <- t(sapply(pmat, function(x){apply(x, 2, mean)}))[,2:14]
+nullsd <- t(sapply(pmat, function(x){apply(x, 2, sd)}))[,2:14]
+nullmot <- (sub.counts - nullmean)/nullsd
+nullmot[is.na(nullmot)] <- 0
 
-fwQSSl <- apply(fw.stab.l, 2, function(x){sum(x<0)/reps})
+nullmot <- apply(nullmot, 2, function(x){x/sqrt(sum(x^2))})
+
+boxplot(nullmot[,names(sorted)])
+
+mfreq.rcp <- melt(nullmot[,names(sorted)])
+
+p1 <- ggplot(mfreq.rcp, aes(x = Var2, y = value)) + geom_boxplot() 
+p1 <- p1 + geom_line(data = sort.qss, aes(x = 1:13, y = sorted), size = 1.5)
+p1 <- p1 + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 4, col = "blue")
+p1 <- p1 + geom_line(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 1.5)
+p1 <- p1 + geom_point(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 4, col = "darkred")
+p1 <- p1 + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
+p1 + xlab("Subgraph") + ylab("Frequency")
+
+
+setwd("C:/Users/borre_000/Desktop/GitHub/Subgraph-Stability/")
+#save.image("subgraphSTABILITY.Rdata")
+load(subgraphSTABILITY.Rdata)
