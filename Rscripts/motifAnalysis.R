@@ -182,4 +182,4 @@ p1 + xlab("Subgraph") + ylab("Frequency")
 
 setwd("C:/Users/borre_000/Desktop/GitHub/Subgraph-Stability/")
 #save.image("subgraphSTABILITY.Rdata")
-load(subgraphSTABILITY.Rdata)
+load("subgraphSTABILITY.Rdata")
