@@ -5,12 +5,12 @@
 s1<-matrix(c(0,1,0,-1,0,1,0,-1,0),nrow=3,ncol=3)
 s2<-matrix(c(0,1,1,-1,0,1,-1,-1,0),nrow=3,ncol=3)
 s3<-matrix(c(0,1,-1,-1,0,1,1,-1,0),nrow=3,ncol=3)
-s4<-matrix(c(0,0,1,0,0,1,-1,-1,0),nrow=3,ncol=3)
-s5<-matrix(c(0,1,1,-1,0,0,-1,0,0),nrow=3,ncol=3)
+s4<-matrix(c(0,1,1,-1,0,0,-1,0,0),nrow=3,ncol=3)
+s5<-matrix(c(0,0,1,0,0,1,-1,-1,0),nrow=3,ncol=3)
 
 # "d" denotes that double links are included
-d1<-matrix(c(0,1,1,1,0,1,-1,-1,0),nrow=3,ncol=3)
-d2<-matrix(c(0,1,1,-1,0,1,-1,1,0),nrow=3,ncol=3)
+d1<-matrix(c(0,1,1,-1,0,1,-1,1,0),nrow=3,ncol=3)
+d2<-matrix(c(0,1,1,1,0,1,-1,-1,0),nrow=3,ncol=3)
 d3<-matrix(c(0,1,1,1,0,0,-1,0,0),nrow=3,ncol=3)
 d4<-matrix(c(0,1,1,-1,0,0,1,0,0),nrow=3,ncol=3)
 d5<-matrix(c(0,1,1,-1,0,1,1,-1,0),nrow=3,ncol=3)
@@ -30,9 +30,9 @@ motif_counter(testA2, webs = names(mot.lst))
 ## Functions to get eigenvalues of randomly sampled matrices
 ran.unif <- function(motmat){
   newmat <- apply(motmat, c(1,2), function(x){
-    if(x==1){runif(1, 0, 10)}else if(x==-1){runif(1, -1, 0)} else{0}
+    if(x==1){runif(1, 0, 5)}else if(x==-1){runif(1, -1, 0)} else{0}
   })
-  diag(newmat) <- runif(1, -1, 0)
+  diag(newmat) <- -1
   return(newmat)
 }
 
@@ -179,6 +179,36 @@ p1 <- p1 + geom_point(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 4, 
 p1 <- p1 + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
 p1 + xlab("Subgraph") + ylab("Frequency")
 
+
+# Subgraph models
+
+conversion <- function(tm){
+  for(i in 1:nrow(tm)){
+    for(j in 1:ncol(tm)){
+      if(tm[i,j] == 1){tm[j,i] <- -1}
+    }
+  }
+  return(tm)
+}
+
+nm <- list()
+for(i in 1:10){
+  nm[[i]] <- niche.model(50, .15)
+}
+
+nmL <- lapply(nm, graph.adjacency)
+mcN <- motif_counter(nmL, webs = 1:10)
+motN <- as.matrix(mcN[,2:14])
+motN2 <- matrix(c(motN[,1:5], colSums(motN[,6:13])), nrow = 10)
+
+nm2 <- lapply(nm, conversion)
+mcEIG <- eig.analysis(1000, nm2, mode = "unif")
+qss <- apply(mcEIG, 2, function(x){sum(x<0)/1000})
+qss
+m <- apply(mcEIG, 2, min)
+
+
+summary(betareg(qss~motN2))
 
 setwd("C:/Users/borre_000/Desktop/GitHub/Subgraph-Stability/")
 #save.image("subgraphSTABILITY.Rdata")
