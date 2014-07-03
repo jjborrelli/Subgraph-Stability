@@ -107,14 +107,18 @@ df.freq <- data.frame(motcount)
 
 mfreq <- melt(df.freq[,names(sorted)])
 
-g <- ggplot(mfreq, aes(x = variable, y = value)) + geom_boxplot() 
+g <- ggplot(mfreq, aes(x = variable, y = log(value)/max(log(value)))) + geom_boxplot() 
 g <- g + geom_line(data = sort.qss, aes(x = 1:13, y = sorted), size = 1.5)
 g <- g + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 4, col = "blue")
 g <- g + geom_line(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 1.5)
 g <- g + geom_point(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 4, col = "darkred")
 g <- g + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
-g + xlab("Subgraph") + ylab("Frequency")
+g + xlab("Subgraph") + ylab(expression(over("Log Frequency", "Max(Log Frequency)")))
 
+
+temp.df <- data.frame(matrix(rep(mot.qss, 50), ncol = 13, byrow = T))
+colnames(temp.df) <- names(mot.lst)
+mstab <- melt(temp.df)
 
 #######
 
