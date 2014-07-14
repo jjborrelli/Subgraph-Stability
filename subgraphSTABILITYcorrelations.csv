@@ -1,9 +1,0 @@
-Count,Measure,Distribution,lowCI,Estimate,highCI,pval
-Freq,mean,unif,0.7186,0.9094,0.973,1.63E-05
-Freq,median,unif,0.5461,0.8433,0.952,0.00029
-Freq,mean,lnorm,0.772,0.9282,0.9787,4.74E-06
-Freq,median,lnorm,0.6185,0.8722,0.9613,0.0001
-Zscore,mean,unif,0.466,0.8092,0.9408,8.10E-04
-Zscore,median,unif,0.3432,0.752,0.9213,0.003
-Zscore,mean,lnorm,0.6038,0.8665,0.9594,1.30E-04
-Zscore,median,lnorm,0.5857,0.8593,0.9571,0.00017
