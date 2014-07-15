@@ -290,9 +290,15 @@ p1 <- p1 + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 4, col 
 p1 <- p1 + geom_line(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 1.5)
 p1 <- p1 + geom_point(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 4, col = "darkred")
 p1 <- p1 + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
-p1 + xlab("Subgraph") + ylab("Normalized Profile")
+p1 + xlab("Subgraph") + ylab("Frequency")
 
 cor.test(sorted, apply(profile[,names(sorted)], 2, median))
+
+d <- data.frame(s = names(sorted), q = sorted)
+ggplot(d, aes(x = s, y = q)) + geom_point(size = 3) + 
+  scale_x_discrete(limits = c("s1", "s4", "s5", "s2", "d4", "d3",
+                              "s3", "d2", "d1", "d5", "d7", "d8", "d6")) +
+  xlab("Subgraph") + ylab("Quasi Sign-Stability")
 
 setwd("C:/Users/borre_000/Desktop/GitHub/Subgraph-Stability/")
 #save.image("subgraphSTABILITY2.Rdata")
