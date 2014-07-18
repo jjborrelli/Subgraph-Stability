@@ -24,6 +24,7 @@ names(mot.lst) <- c("s1", "s2", "s3", "s4", "s5", "d1", "d2", "d3", "d4", "d5", 
 
 # This shows that some of my motif matrices are WRONG
 # NEEDS TO BE FIXED!!!!
+require(igraph)
 testA2 <- lapply(mot.lst, graph.adjacency)
 motif_counter(testA2, webs = names(mot.lst))
 
@@ -303,3 +304,55 @@ ggplot(d, aes(x = s, y = q)) + geom_point(size = 3) +
 setwd("C:/Users/borre_000/Desktop/GitHub/Subgraph-Stability/")
 #save.image("subgraphSTABILITY2.Rdata")
 load("subgraphSTABILITY.Rdata")
+
+
+### Sensitivity to distribution choice
+
+ran.unif <- function(motmat, maxpred, maxprey, maxdens){
+  if(maxprey > 0){warning("Parameter 'maxprey' should be negative")}
+  if(maxdens > 0){warning("Parameter 'maxdens' should be negative")}
+  if(maxpred < 0){warning("Parameter 'maxpred' should be positive")}
+  
+  newmat <- apply(motmat, c(1,2), function(x){
+    if(x==1){runif(1, 0, maxpred)}else if(x==-1){runif(1, maxprey, 0)} else{0}
+  })
+  diag(newmat) <- runif(3, maxdens, 0)
+  return(newmat)
+}
+
+maxRE <- function(rmat){
+  lam.max <- max(Re(eigen(rmat)$values))
+  return(lam.max)
+}
+
+eig.analysis <- function(n, matrices, maxpred, maxprey, maxdens){
+  cols <- length(matrices)
+  rows <- n
+  eigenMATRIX <- matrix(0, nrow = rows, ncol = cols)
+  for(i in 1:n){
+    ranmat <- lapply(matrices, ran.unif, maxpred = maxpred, maxprey = maxprey, maxdens = maxdens)
+    eigs <- sapply(ranmat, maxRE)
+    eigenMATRIX[i,] <- eigs
+  }
+  return(eigenMATRIX)
+}
+
+pred <- c(10, 1)
+prey <- c(-.1, -1, -10)
+dens <- c(-.1, -1, -10)
+a <- rep(pred, each = 9)
+b <- rep(prey, 3)
+c <- rep(dens, each = 3)
+
+pars <- data.frame(a,b,c)
+n <- 1000
+
+qssDATA <- matrix(0, nrow = 18, ncol = 13)
+colnames(qssDATA) <- names(mot.lst)
+for(i in 1:18){
+  mot.stab <- eig.analysis(n, mot.lst, maxpred = pars[i,1], maxprey = pars[i,2], maxdens = pars[i,3])
+  colnames(mot.stab) <- names(mot.lst)
+  mot.qss <- apply(mot.stab, 2, function(x){sum(x<0)/n})
+  qssDATA[i,] <- mot.qss
+  cat(i, "::", qssDATA[i,], " :: ", "pred =", pars[i,1],";", "prey =", pars[i,2],";", "dens =", pars[i,3], "\n")
+}
