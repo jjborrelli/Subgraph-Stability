@@ -1,0 +1,161 @@
+---
+title: 'Appendix - Selection against instability: stable subgraphs are most frequent
+  in empirical food webs'
+author: "Jonathan J. Borrelli"
+date: "Wednesday, July 23, 2014"
+output: html_document
+---
+
+## Subgraph Library  
+
+The following code defines the sign matrix for each of the thirteen possible three-node subgraphs.  
+
+```{r library}
+## Create matrices for each of the 13 possible 3 species configurations
+# "s" denotes single links only
+
+s1<-matrix(c(0,1,0,-1,0,1,0,-1,0),nrow=3,ncol=3)
+s2<-matrix(c(0,1,1,-1,0,1,-1,-1,0),nrow=3,ncol=3)
+s3<-matrix(c(0,1,-1,-1,0,1,1,-1,0),nrow=3,ncol=3)
+s4<-matrix(c(0,1,1,-1,0,0,-1,0,0),nrow=3,ncol=3)
+s5<-matrix(c(0,0,1,0,0,1,-1,-1,0),nrow=3,ncol=3)
+
+# "d" denotes that double links are included
+d1<-matrix(c(0,1,1,-1,0,1,-1,1,0),nrow=3,ncol=3)
+d2<-matrix(c(0,1,1,1,0,1,-1,-1,0),nrow=3,ncol=3)
+d3<-matrix(c(0,1,-1,1,0,0,1,0,0),nrow=3,ncol=3)
+d4<-matrix(c(0,1,1,-1,0,0,1,0,0),nrow=3,ncol=3)
+d5<-matrix(c(0,1,1,-1,0,1,1,-1,0),nrow=3,ncol=3)
+d6<-matrix(c(0,1,1,1,0,1,1,1,0),nrow=3,ncol=3)
+d7<-matrix(c(0,1,1,1,0,1,1,-1,0),nrow=3,ncol=3)
+d8<-matrix(c(0,1,1,1,0,0,1,0,0),nrow=3,ncol=3)
+
+# Create a list of all 13 matrices
+mot.lst <- list(s1, s2, s3, s4, s5, d1, d2, d3, d4, d5, d6, d7, d8)
+names(mot.lst) <- c("s1", "s2", "s3", "s4", "s5", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8")
+
+```
+
+## Define required functions
+
+### Functions for counting motifs
+
+The `motif_counter` function takes in a list of graph objects and applies `triad.census` to each. It returns a data frame of the frequency of each connected three-node digraph. 
+
+```{r counter}
+motif_counter <- function(graph.lists){
+  require(igraph)
+  
+  if(!is.list(graph.lists)){
+    stop("The input should be a list of graph objects")
+  }
+  
+  triad.count <- lapply(graph.lists, triad.census)
+  triad.matrix <- matrix(unlist(triad.count), nrow = length(graph.lists), ncol = 16, byrow = T)
+  colnames(triad.matrix) <- c("empty", "single", "mutual", "s5", "s4", "s1", "d4",
+                              "d3", "s2", "s3","d8", "d2", "d1", "d5", "d7", "d6")
+  
+  triad.df <- as.data.frame(triad.matrix)
+  
+  motif.data.frame <- data.frame(s1 = triad.df$s1, s2 = triad.df$s2, s3 = triad.df$s3, s4 = triad.df$s4, 
+                                 s5 = triad.df$s5, d1 = triad.df$d1, d2 = triad.df$d2, d3 = triad.df$d3, d4 = triad.df$d4,
+                                 d5 = triad.df$d5, d6 = triad.df$d6, d7 = triad.df$d7, d8 = triad.df$d8)
+  
+  rownames(motif.data.frame) <- names(graph.lists)
+  return(motif.data.frame)
+}
+```
+
+The `permutes_rc` function is a null model that generates `iter` number of permuted matrices from the input matrix (`mat`). Each permuted matrix is created by randomly sampling 2x2 submatrices matching the pattern 
+```{r echo = F, comment = NA} 
+matrix(c(0,1,1,0), nrow = 2, ncol = 2)
+``` 
+or 
+```{r echo = F, comment = NA}
+matrix(c(1,0,0,1), nrow = 2, ncol = 2)
+``` 
+and swapping the 0s and 1s. This null model preserves the number of prey and predators of each species (the degree distribution). 
+
+```{r null.model}
+permutes_rc <- function(mat, iter = 100){
+  
+  pattern1 <- matrix(c(0,1,1,0), nrow = 2, ncol = 2)
+  pattern2 <- matrix(c(1,0,0,1), nrow = 2, ncol = 2)
+  count <- 0
+  
+  mat.list <- list()
+  
+  while(count < iter){
+    srow <- sample(1:nrow(mat), 2)
+    scol <- sample(1:ncol(mat), 2)
+    
+    test <- mat[srow, scol]
+    
+    if(sum(test == pattern1) == 4){
+      count <- count + 1
+      mat[srow, scol] <- pattern2
+      mat.list[[count]] <- mat
+      
+      next
+    } else if(sum(test == pattern2) == 4){
+      count <- count + 1
+      mat[srow, scol] <- pattern1
+      mat.list[[count]] <- mat
+      
+      next
+    } else {next}
+  }
+  
+  matrices <- lapply(mat.list, as.matrix)
+  return(permuted.matrices = matrices)
+}
+
+```
+
+
+### Functions for determining quasi sign-stability
+There are two main functions for determining quasi sign-stability, and a third that wraps them together to generate the desired number of iterations. 
+
+The function `ran.unif` takes an input of a signed matrix. It will then check each cell to see if there is a 1 or -1. Each 1 will be replaced by a value drawn from the random uniform distribution between 0 and 10, while each -1 is replaced by a value from the random uniform distribution between -1 and 0. The `ran.unif` function also assigns values to the diagonal from a random uniform distribition between -1 and 0. The resulting randomly sample matrix is returned.  
+
+```{r}
+ran.unif <- function(motmat){
+  newmat <- apply(motmat, c(1,2), function(x){
+    if(x==1){runif(1, 0, 10)}else if(x==-1){runif(1, -1, 0)} else{0}
+  })
+  diag(newmat) <- runif(3, -1, 0)
+  return(newmat)
+}
+```
+
+Given the input matrix `maxRE` will compute the eigenvalues and return the largest real part. 
+
+```{r}
+maxRE <- function(rmat){
+  lam.max <- max(Re(eigen(rmat)$values))
+  return(lam.max)
+}
+
+```
+
+The above two functions are combined in `eig.analysis`. Given the number of desired sampling iterations, `n`, and a list of sign matrices to analyze, `matrices`, the `eig.analysis` function will return an  `n` by `length(matrices)` matrix of eigenvalues. Specifically it is returning the $max(Re(\lambda))$ for each sampled matrix. From this matrix quasi sign-stability can be calculated as the proportion of values in each column that are negative.  
+
+```{r}
+eig.analysis <- function(n, matrices){
+  cols <- length(matrices)
+  rows <- n
+  eigenMATRIX <- matrix(0, nrow = rows, ncol = cols)
+  for(i in 1:n){
+    ranmat <- lapply(matrices, ran.unif)
+    eigs <- sapply(ranmat, maxRE)
+    eigenMATRIX[i,] <- eigs
+  }
+  return(eigenMATRIX)
+}
+
+```
+
+```{r}
+
+```
+
