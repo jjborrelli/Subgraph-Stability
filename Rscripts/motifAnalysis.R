@@ -185,9 +185,9 @@ boxplot(nullmot2a[,names(sorted)])
 
 mfreq.rcp <- melt(nullmot2a[,names(sorted)])
 
-p1 <- ggplot(mfreq.rcp, aes(x = Var2, y = value)) + geom_boxplot() 
+p1 <- ggplot(df, aes(x = variable, y = value)) + geom_boxplot() 
 #p1 <- p1 + geom_line(data = sort.qss, aes(x = 1:13, y = sorted), size = 1.5)
-#p1 <- p1 + geom_point(data = sort.qss, aes(x = 1:13, y = sorted), size = 4, col = "blue")
+p1 <- p1 + geom_point(aes(x = 1:13, y = sorted), size = 4, col = "blue")
 #p1 <- p1 + geom_line(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 1.5)
 #p1 <- p1 + geom_point(data = sort.qss.l, aes(x = 1:13, y = sorted.l), size = 4, col = "darkred")
 p1 <- p1 + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
@@ -235,6 +235,9 @@ permutes_rc <- function(mat, iter = 100){
   count <- 0
   
   mat.list <- list()
+  for(i in 1:iter){
+    mat.list[[i]] <- matrix(0, nrow = nrow(mat), ncol = ncol(mat))
+  }
   
   while(count < iter){
     srow <- sample(1:nrow(mat), 2)
@@ -268,7 +271,7 @@ system.time(
 for(i in 1:length(web.matrices)){
   p <- permutes_rc(web.matrices[[i]], 1000)
   g <- lapply(p, graph.adjacency)
-  pmot[[i]] <- motif_counter(g, 1:1000)
+  pmot[[i]] <- motif_counter(g)
   cat(i, names(web.matrices)[i], "\n")
 }
 )

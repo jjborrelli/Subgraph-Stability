@@ -3,24 +3,33 @@ title: 'Appendix - Selection against instability: stable subgraphs are most freq
   in empirical food webs'
 author: "Jonathan J. Borrelli"
 date: "Wednesday, July 23, 2014"
-output: html_document
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    highlight: tango
 ---
+
+```{r, echo = F, message = F}
+require(knitr)
+opts_chunk$set(message = F, comment = NA)
+```
+
+[The code provided here can also be obtained from GitHub by clicking this link](https://github.com/jjborrelli/Subgraph-Stability)
+
+# Definitions  
 
 ## Subgraph Library  
 
-The following code defines the sign matrix for each of the thirteen possible three-node subgraphs.  
+The following code defines the sign matrix for each of the thirteen possible three-node subgraphs. Here, the "s" in the object name indicates that only single links are used, while a "d" indicates the presence of double links.   
 
 ```{r library}
-## Create matrices for each of the 13 possible 3 species configurations
-# "s" denotes single links only
-
 s1<-matrix(c(0,1,0,-1,0,1,0,-1,0),nrow=3,ncol=3)
 s2<-matrix(c(0,1,1,-1,0,1,-1,-1,0),nrow=3,ncol=3)
 s3<-matrix(c(0,1,-1,-1,0,1,1,-1,0),nrow=3,ncol=3)
 s4<-matrix(c(0,1,1,-1,0,0,-1,0,0),nrow=3,ncol=3)
 s5<-matrix(c(0,0,1,0,0,1,-1,-1,0),nrow=3,ncol=3)
 
-# "d" denotes that double links are included
 d1<-matrix(c(0,1,1,-1,0,1,-1,1,0),nrow=3,ncol=3)
 d2<-matrix(c(0,1,1,1,0,1,-1,-1,0),nrow=3,ncol=3)
 d3<-matrix(c(0,1,-1,1,0,0,1,0,0),nrow=3,ncol=3)
@@ -30,7 +39,6 @@ d6<-matrix(c(0,1,1,1,0,1,1,1,0),nrow=3,ncol=3)
 d7<-matrix(c(0,1,1,1,0,1,1,-1,0),nrow=3,ncol=3)
 d8<-matrix(c(0,1,1,1,0,0,1,0,0),nrow=3,ncol=3)
 
-# Create a list of all 13 matrices
 mot.lst <- list(s1, s2, s3, s4, s5, d1, d2, d3, d4, d5, d6, d7, d8)
 names(mot.lst) <- c("s1", "s2", "s3", "s4", "s5", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8")
 
@@ -84,6 +92,9 @@ permutes_rc <- function(mat, iter = 100){
   count <- 0
   
   mat.list <- list()
+  for(i in 1:iter){
+    mat.list[[i]] <- matrix(0, nrow = nrow(mat), ncol = ncol(mat))
+  }
   
   while(count < iter){
     srow <- sample(1:nrow(mat), 2)
@@ -155,7 +166,109 @@ eig.analysis <- function(n, matrices){
 
 ```
 
-```{r}
+# Analysis  
 
+Load required packages
+```{r}
+require(igraph)
+require(ggplot2)
+require(reshape2)
+```
+
+
+## Determining motif frequency
+
+Load in web data from GitHub. [Click here to download the .Rdata file](https://github.com/jjborrelli/Subgraph-Stability/blob/master/webGRAPHS.Rdata?raw=true). This file is a list of igraph graph objects for each of the 50 webs used in the analysis. Once you have downloaded the file into your working directory:
+
+```{r wd, echo = F}
+setwd("C:/Users/borre_000/Desktop/Github/Subgraph-Stability/")
+profile <- read.csv("normalizedPROFILE.csv", row.names = 1)
+```
+
+```{r getDATA}
+load(paste(getwd(), "webGRAPHS.Rdata", sep = "/"))
+```
+
+The frequencies of each of the different subgraphs can now be determined easily with `motif_counter`. 
+
+```{r}
+motfreq <- motif_counter(web.graphs)
+kable(motfreq, format = "pandoc")
+```
+
+The following code runs the null model analysis for the 50 food webs. First, each of the fifty webs are converted into binary adjacency matrices (`web.matrices`). Because the null model is a stochastic process the `set.seed(10)` allows for reproducible results. The code then loops through the list of adjacency matrices, generating 1000 permuted versions. The subgraphs are counted in each permuted matrix, and stored in a list (`p.mot`).   
+
+```{r eval = F}
+web.matrices <- lapply(web.graphs, get.adjacency, sparse = F)
+
+set.seed(10)
+pmot <- list()
+
+for(i in 1:length(web.matrices)){
+  p <- permutes_rc(web.matrices[[i]], 1000)
+  g <- lapply(p, graph.adjacency)
+  pmot[[i]] <- motif_counter(g)
+}
+```
+
+Once subgraph counts have been obtained, the mean and standard deviation for each subgraph are computed. Z-scores are then computed as described in the methods section:  
+$$
+z_i = \frac{x_i - \overline{x}}{\sigma}
+$$
+In cases where there were no occurences of a subgraph (standard deviation = 0) `NaN` is produced following the appllication of the above formula. In these cases I have replaced the `NaN` with 0. The normalized profile was then computed (as desribed in the methods):  
+$$
+n_i = \frac{z_i}{\sqrt{\sum{z_j^2}}}
+$$
+
+```{r eval = F}
+mus <- t(sapply(pmot, function(x){colMeans(x)}))
+sig <- t(sapply(pmot, function(x){apply(x, 2, sd)}))
+z <- (motfreq - mus)/sig
+zmat <- as.matrix(z)
+zmat[is.nan(zmat)] <- 0
+profile <- apply(zmat, 2, function(x){x/sqrt(rowSums(zmat^2))})
+```
+```{r}
+kable(profile, format = "pandoc")
+```
+
+**Figure 1a** is then just a boxplot of the above object `profile`, reordered according to decreasing quasi sign-stability (see below).   
+
+## Determining Quasi Sign-Stability  
+
+The first step to get quasi sign stability is to get the largest eigenvalues from a series of randomly parameterized sign matrices. In the following code I generate 10000 random parameterizations for each of the 13 subgraphs's sign matrices (`mot.lst`). The `eig.analysis` function will return a matrix where each column is a different subgraph and each row is the largest eigenvalue of a particular randomization. 
+
+```{r eigs, cache = T}
+set.seed(5)
+
+n <- 10000
+mot.stab<- eig.analysis(n, mot.lst)
+colnames(mot.stab) <- names(mot.lst)
+
+```
+
+From that matrix, quasi sign-stability is calculated as the proportion of rows with a negative value. In other words, how many random parameterizations of the sign matrix were locally stable? 
+
+```{r qss}
+mot.qss <- apply(mot.stab, 2, function(x){sum(x<0)/n})
+sorted <- sort(mot.qss, decreasing = T)
+sorted
+```
+
+# Code for the figures
+
+```{r}
+plot.df <- melt(profile[,names(sorted)])
+
+fplot <- ggplot(plot.df, aes(x = variable, y = value)) + geom_boxplot()
+fplot <- fplot + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
+fplot + xlab("Subgraph") + ylab("Frequency")
+```
+
+```{r}
+sort.df <- melt(sorted)
+
+fplot <- ggplot(sort.df, aes(x = 1:13, y = value)) + geom_point(shape = 19, size = 3)
+fplot + xlab("Subgraph") + ylab("Quasi Sign-Stability") + scale_x_discrete(limits=names(sorted))
 ```
 
