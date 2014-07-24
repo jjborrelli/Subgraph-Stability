@@ -228,9 +228,7 @@ zmat <- as.matrix(z)
 zmat[is.nan(zmat)] <- 0
 profile <- apply(zmat, 2, function(x){x/sqrt(rowSums(zmat^2))})
 ```
-```{r}
-kable(profile, format = "pandoc")
-```
+
 
 **Figure 1a** is then just a boxplot of the above object `profile`, reordered according to decreasing quasi sign-stability (see below).   
 
