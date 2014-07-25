@@ -266,7 +266,7 @@ fplot + xlab("Subgraph") + ylab("Frequency")
 ```{r}
 sort.df <- melt(sorted)
 
-fplot <- ggplot(sort.df, aes(x = 1:13, y = value)) + geom_point(shape = 19, size = 3)
-fplot + xlab("Subgraph") + ylab("Quasi Sign-Stability") + scale_x_discrete(limits=names(sorted))
+qssplot <- ggplot(sort.df, aes(x = 1:13, y = value)) + geom_point(shape = 19, size = 3)
+qssplot + xlab("Subgraph") + ylab("Quasi Sign-Stability") + scale_x_discrete(limits=names(sorted))
 ```
 
