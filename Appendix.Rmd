@@ -170,9 +170,9 @@ eig.analysis <- function(n, matrices){
 
 Load required packages
 ```{r}
-require(igraph)
-require(ggplot2)
-require(reshape2)
+library(igraph)
+library(ggplot2)
+library(reshape2)
 ```
 
 
@@ -182,7 +182,10 @@ Load in web data from GitHub. [Click here to download the .Rdata file](https://g
 
 ```{r wd, echo = F}
 setwd("C:/Users/borre_000/Desktop/Github/Subgraph-Stability/")
-profile <- read.csv("normalizedPROFILE.csv", row.names = 1)
+#profile <- read.csv("normalizedPROFILE.csv", row.names = 1)
+
+mus <- read.csv("permutedmeans.csv", row.names = 1)
+sig <- read.csv("permutesd.csv", row.names = 1)
 ```
 
 ```{r getDATA}
@@ -208,6 +211,7 @@ for(i in 1:length(web.matrices)){
   p <- permutes_rc(web.matrices[[i]], 1000)
   g <- lapply(p, graph.adjacency)
   pmot[[i]] <- motif_counter(g)
+  print(i)
 }
 ```
 
@@ -223,6 +227,9 @@ $$
 ```{r eval = F}
 mus <- t(sapply(pmot, function(x){colMeans(x)}))
 sig <- t(sapply(pmot, function(x){apply(x, 2, sd)}))
+```
+
+```{r}
 z <- (motfreq - mus)/sig
 zmat <- as.matrix(z)
 zmat[is.nan(zmat)] <- 0
@@ -253,12 +260,22 @@ sorted <- sort(mot.qss, decreasing = T)
 sorted
 ```
 
+### Correlation  
+Compute the correlation between QSS and median z-score  
+```{r cor}
+med.z <- apply(zmat[,names(sorted)], 2, median)
+
+cor.test(sorted, med.z)
+```
+
+
+
 # Code for the figures
 
 ```{r}
 plot.df <- melt(profile[,names(sorted)])
 
-fplot <- ggplot(plot.df, aes(x = variable, y = value)) + geom_boxplot()
+fplot <- ggplot(plot.df, aes(x = Var2, y = value)) + geom_boxplot()
 fplot <- fplot + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
 fplot + xlab("Subgraph") + ylab("Frequency")
 ```

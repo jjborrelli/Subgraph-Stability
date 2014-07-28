@@ -14,7 +14,7 @@
    version="1.1"
    id="svg2"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="normPRO.svg">
+   sodipodi:docname="FIG1.png">
   <metadata
      id="metadata521">
     <rdf:RDF>
@@ -43,11 +43,11 @@
      inkscape:snap-grids="false"
      inkscape:zoom="1.8056055"
      inkscape:cx="270.4801"
-     inkscape:cy="417.94576"
+     inkscape:cy="573.01839"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg2" />
+     inkscape:current-layer="surface1" />
   <defs
      id="defs4">
     <g
@@ -575,7 +575,7 @@
   </defs>
   <g
      id="surface6"
-     transform="matrix(0.49786852,0,0,0.53000337,214.75727,0.88524707)">
+     transform="matrix(0.49786852,0,0,0.95245858,214.75727,0.88524707)">
     <rect
        id="rect4030"
        style="fill:#ffffff;fill-opacity:1;stroke:none"
@@ -1267,19 +1267,7 @@
   </g>
   <g
      id="surface1"
-     transform="matrix(0.48854663,0,0,0.52624338,3.1626122,1.6534641)">
-    <text
-       xml:space="preserve"
-       style="font-size:18.93323708px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
-       x="-287.97699"
-       y="431.68027"
-       id="text4574"
-       sodipodi:linespacing="125%"
-       transform="matrix(0.00215977,-0.96351561,1.0378614,0.00200506,0,0)"><tspan
-         sodipodi:role="line"
-         id="tspan4576"
-         x="-287.97699"
-         y="431.68027">Quasi Sign-Stability</tspan></text>
+     transform="matrix(0.48854663,0,0,0.94570156,3.1626122,2.2657947)">
     <rect
        x="0"
        y="0"
@@ -2297,16 +2285,16 @@
     </g>
     <text
        xml:space="preserve"
-       style="font-size:18.93323708px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
-       x="-284.04611"
-       y="13.450188"
+       style="font-size:21.83841515px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
+       x="-327.62833"
+       y="15.126501"
        id="text4562"
        sodipodi:linespacing="125%"
-       transform="matrix(-0.00739378,-0.96349326,1.0378373,-0.00686414,0,0)"><tspan
+       transform="matrix(-0.00852831,-0.83531916,1.1970864,-0.005951,0,0)"><tspan
          sodipodi:role="line"
          id="tspan4564"
-         x="-284.04611"
-         y="13.450188">Normalized Profile</tspan></text>
+         x="-327.62833"
+         y="15.126501">Normalized Profile</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:24px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
@@ -2355,5 +2343,17 @@
          id="tspan4588"
          x="812.52972"
          y="29.967649">b</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20.57780266px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
+       x="-311.23376"
+       y="396.5524"
+       id="text4574"
+       sodipodi:linespacing="125%"
+       transform="matrix(0.00234737,-0.88651195,1.1280115,0.00184481,0,0)"><tspan
+         sodipodi:role="line"
+         id="tspan4576"
+         x="-311.23376"
+         y="396.5524">Quasi Sign-Stability</tspan></text>
   </g>
 </svg>
