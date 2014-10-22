@@ -134,7 +134,7 @@ ran.unif <- function(motmat){
   newmat <- apply(motmat, c(1,2), function(x){
     if(x==1){runif(1, 0, 10)}else if(x==-1){runif(1, -1, 0)} else{0}
   })
-  diag(newmat) <- runif(3, -1, 0)
+  diag(newmat) <- runif(nrow(motmat), -1, 0)
   return(newmat)
 }
 ```

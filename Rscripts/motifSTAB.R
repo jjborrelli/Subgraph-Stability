@@ -76,7 +76,7 @@ conversion <- function(tm){
 
 
 
-n = 1000
+n = 10
 nm <- list()
 for(i in 1:n){
   nm[[i]] <- niche.model(25, .1)
@@ -106,5 +106,5 @@ cl <- makeCluster(3)
 registerDoParallel(cl)
 #.export = c("eig_analysis", "maxRE", "ran.unif")
 system.time(
-inPAR <- foreach(i = 1:1000, .combine = "rbind") %dopar% {eig_analysis(nmc)}
+inPAR <- foreach(i = 1:100, .combine = "rbind") %dopar% {eig_analysis(nmc)}
 )
