@@ -1,0 +1,11 @@
+base
+datasets
+ggplot2
+graphics
+grDevices
+igraph
+knitr
+methods
+reshape2
+stats
+utils
