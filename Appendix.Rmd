@@ -4,10 +4,12 @@ title: 'Appendix - Selection against instability: stable subgraphs are most freq
 author: "Jonathan J. Borrelli"
 date: "Wednesday, July 23, 2014"
 output:
+  pdf_document:
+    toc: yes
   html_document:
+    highlight: tango
     number_sections: yes
     toc: yes
-    highlight: tango
 ---
 
 ```{r, echo = F, message = F}
@@ -15,6 +17,8 @@ require(knitr)
 opts_chunk$set(message = F, comment = NA)
 ```
 
+--------------------------------------------------
+  
 [The code provided here can also be obtained from GitHub by clicking this link](https://github.com/jjborrelli/Subgraph-Stability)
 
 # Definitions  
@@ -134,7 +138,7 @@ ran.unif <- function(motmat){
   newmat <- apply(motmat, c(1,2), function(x){
     if(x==1){runif(1, 0, 10)}else if(x==-1){runif(1, -1, 0)} else{0}
   })
-  diag(newmat) <- runif(nrow(motmat), -1, 0)
+  diag(newmat) <- runif(3, -1, 0)
   return(newmat)
 }
 ```
@@ -181,7 +185,7 @@ library(reshape2)
 Load in web data from GitHub. [Click here to download the .Rdata file](https://github.com/jjborrelli/Subgraph-Stability/blob/master/webGRAPHS.Rdata?raw=true). This file is a list of igraph graph objects for each of the 50 webs used in the analysis. Once you have downloaded the file into your working directory:
 
 ```{r wd, echo = F}
-setwd("C:/Users/borre_000/Desktop/Github/Subgraph-Stability/")
+setwd("C:/Users/jjborrelli/Desktop/Github/Subgraph-Stability/")
 #profile <- read.csv("normalizedPROFILE.csv", row.names = 1)
 
 mus <- read.csv("permutedmeans.csv", row.names = 1)
@@ -277,13 +281,14 @@ plot.df <- melt(profile[,names(sorted)])
 
 fplot <- ggplot(plot.df, aes(x = Var2, y = value)) + geom_boxplot()
 fplot <- fplot + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
-fplot + xlab("Subgraph") + ylab("Frequency")
+fplot <- fplot + theme_bw()
+fplot + xlab("Subgraph") + ylab("Normalized Z-score")
 ```
 
 ```{r}
 sort.df <- melt(sorted)
 
-qssplot <- ggplot(sort.df, aes(x = 1:13, y = value)) + geom_point(shape = 19, size = 3)
+qssplot <- ggplot(sort.df, aes(x = 1:13, y = value)) + geom_point(shape = 19, size = 3) + theme_bw()
 qssplot + xlab("Subgraph") + ylab("Quasi Sign-Stability") + scale_x_discrete(limits=names(sorted))
 ```
 
