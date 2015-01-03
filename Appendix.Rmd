@@ -17,7 +17,10 @@ require(knitr)
 opts_chunk$set(message = F, comment = NA)
 ```
 
---------------------------------------------------
+--------------------------------------------------  
+
+
+Borrelli, J. J. 2014. Selection against instability: stable subgraphs are most frequent in empirical food webs. -Oikos 000: 000-000 
   
 [The code provided here can also be obtained from GitHub by clicking this link](https://github.com/jjborrelli/Subgraph-Stability)
 
@@ -185,7 +188,7 @@ library(reshape2)
 Load in web data from GitHub. [Click here to download the .Rdata file](https://github.com/jjborrelli/Subgraph-Stability/blob/master/webGRAPHS.Rdata?raw=true). This file is a list of igraph graph objects for each of the 50 webs used in the analysis. Once you have downloaded the file into your working directory:
 
 ```{r wd, echo = F}
-setwd("C:/Users/jjborrelli/Desktop/Github/Subgraph-Stability/")
+setwd("C:/Users/borre_000/Desktop/Github/Subgraph-Stability/")
 #profile <- read.csv("normalizedPROFILE.csv", row.names = 1)
 
 mus <- read.csv("permutedmeans.csv", row.names = 1)
