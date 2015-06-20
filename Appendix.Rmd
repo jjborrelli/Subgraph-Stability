@@ -6,15 +6,17 @@ date: "Wednesday, July 23, 2014"
 output:
   pdf_document:
     toc: yes
-  html_document:
+    number_sections: yes
     highlight: tango
+  html_document:
     number_sections: yes
     toc: yes
 ---
 
 ```{r, echo = F, message = F}
 require(knitr)
-opts_chunk$set(message = F, comment = NA)
+opts_chunk$set(message = F, comment = NA, tidy = T)
+
 ```
 
 --------------------------------------------------  
@@ -22,7 +24,7 @@ opts_chunk$set(message = F, comment = NA)
 
 Borrelli, J. J. 2014. Selection against instability: stable subgraphs are most frequent in empirical food webs. -Oikos 000: 000-000 
   
-[The code provided here can also be obtained from GitHub by clicking this link](https://github.com/jjborrelli/Subgraph-Stability)
+[The code provided here can also be obtained from GitHub by clicking this link](https://github.com/borre_000/Subgraph-Stability)
 
 # Definitions  
 
@@ -81,53 +83,99 @@ motif_counter <- function(graph.lists){
 }
 ```
 
-The `permutes_rc` function is a null model that generates `iter` number of permuted matrices from the input matrix (`mat`). Each permuted matrix is created by randomly sampling 2x2 submatrices matching the pattern 
-```{r echo = F, comment = NA} 
-matrix(c(0,1,1,0), nrow = 2, ncol = 2)
-``` 
-or 
-```{r echo = F, comment = NA}
-matrix(c(1,0,0,1), nrow = 2, ncol = 2)
-``` 
-and swapping the 0s and 1s. This null model preserves the number of prey and predators of each species (the degree distribution). 
+The Curveball algorithm is available as supplemental information as part of the original publication. *Note if you want to use this code please cite the paper in which it was introduced:*  
 
-```{r null.model}
-permutes_rc <- function(mat, iter = 100){
-  
-  pattern1 <- matrix(c(0,1,1,0), nrow = 2, ncol = 2)
-  pattern2 <- matrix(c(1,0,0,1), nrow = 2, ncol = 2)
-  count <- 0
-  
-  mat.list <- list()
-  for(i in 1:iter){
-    mat.list[[i]] <- matrix(0, nrow = nrow(mat), ncol = ncol(mat))
-  }
-  
-  while(count < iter){
-    srow <- sample(1:nrow(mat), 2)
-    scol <- sample(1:ncol(mat), 2)
+> Strona, G. et al. 2014. A fast and unbiased procedure to randomize ecological binary matrices with fixed row and column totals. -Nat. Comm. 5: 4114. [doi: 10.1038/ncomms5114](http://www.nature.com/ncomms/2014/140611/ncomms5114/full/ncomms5114.html)   
+
+Their function takes a matrix and makes a swap (process descirbed in their paper) and returns the new matrix.   
+
+```{r}
+curve_ball<-function(m){
+  RC=dim(m)
+  R=RC[1]
+  C=RC[2]
+  hp=list()
+  for (row in 1:dim(m)[1]) {hp[[row]]=(which(m[row,]==1))}
+  l_hp=length(hp)
+  for (rep in 1:5*l_hp){
+    AB=sample(1:l_hp,2)
+    a=hp[[AB[1]]]
+    b=hp[[AB[2]]]
+    ab=intersect(a,b)
+    l_ab=length(ab)
+    l_a=length(a)
+    l_b=length(b)
+    if ((l_ab %in% c(l_a,l_b))==F){
+      tot=setdiff(c(a,b),ab)
+      l_tot=length(tot)
+      tot=sample(tot, l_tot, replace = FALSE, prob = NULL)
+      L=l_a-l_ab
+      hp[[AB[1]]] = c(ab,tot[1:L])
+      hp[[AB[2]]] = c(ab,tot[(L+1):l_tot])}
     
-    test <- mat[srow, scol]
-    
-    if(sum(test == pattern1) == 4){
-      count <- count + 1
-      mat[srow, scol] <- pattern2
-      mat.list[[count]] <- mat
-      
-      next
-    } else if(sum(test == pattern2) == 4){
-      count <- count + 1
-      mat[srow, scol] <- pattern1
-      mat.list[[count]] <- mat
-      
-      next
-    } else {next}
   }
-  
-  matrices <- lapply(mat.list, as.matrix)
-  return(permuted.matrices = matrices)
+  rm=matrix(0,R,C)
+  for (row in 1:R){rm[row,hp[[row]]]=1}
+  rm
 }
+```
 
+The `curving` function is used to iteratively apply the Curveball algorithm to a single matrix. This function takes an adjacency matrix and number of iterations as inputs and returns a dataframe of motif frequencies.   
+ 
+```{r}
+curving <- function(adjmat, n){
+  mot <- motif_counter(list(graph.adjacency(adjmat)))
+  newmat <- adjmat
+  
+  for(i in 1:n){
+    newmat <- curve_ball(newmat)
+    m <- motif_counter(list(graph.adjacency(newmat)))
+    mot <- rbind(mot, m)
+  }
+  return(mot[-1,])
+}
+```
+
+I added the additional constraints of maintaining the number of single, double, and self links in each matrix to the original curveball algorithm in the function `dblcan.curve`. This function takes a matrix and desired number of iterations as inputs and returns a dataframe of motif frequencies.   
+
+```{r}
+library(plyr)
+
+nd <- function(gl) nrow(gl) - nrow(unique(aaply(gl, 1, sort)))
+# determines the number of double links
+
+dblcan.curve <- function(mat, iter){
+  mot <- motif_counter(list(graph.adjacency(mat)))
+  
+  el <- get.edgelist(graph.adjacency(mat))
+  Ne <- nrow(el)
+  dbl <- nd(el)
+  can <- sum(diag(mat))
+
+  for(i in 1:iter){
+    ed = TRUE
+    dub = TRUE
+    ca = TRUE
+    while(ed || dub || ca){
+      mat2 <- curve_ball(mat)
+      
+      el2 <- get.edgelist(graph.adjacency(mat2))
+      el3 <- unique(el2)
+      Ne2 <- nrow(el3)
+      dbl2 <- nd(el3)
+      can2 <- sum(diag(mat2))
+      
+      ed <- Ne != Ne2
+      dub <- dbl != dbl2
+      ca <- can != can2
+      
+    }
+    mat <- mat2
+    
+    mot <- rbind(mot, motif_counter(list(graph.adjacency(mat))))
+  }
+  return(M = mot[-1,])
+}
 ```
 
 
@@ -180,19 +228,18 @@ Load required packages
 library(igraph)
 library(ggplot2)
 library(reshape2)
+library(parallel)
+library(doSNOW)
 ```
 
 
 ## Determining motif frequency
 
-Load in web data from GitHub. [Click here to download the .Rdata file](https://github.com/jjborrelli/Subgraph-Stability/blob/master/webGRAPHS.Rdata?raw=true). This file is a list of igraph graph objects for each of the 50 webs used in the analysis. Once you have downloaded the file into your working directory:
+Load in web data from GitHub. [Click here to download the .Rdata file](https://github.com/borre_000/Subgraph-Stability/blob/master/webGRAPHS.Rdata?raw=true). This file is a list of igraph graph objects for each of the 50 webs used in the analysis. Once you have downloaded the file into your working directory:
 
 ```{r wd, echo = F}
 setwd("C:/Users/borre_000/Desktop/Github/Subgraph-Stability/")
-#profile <- read.csv("normalizedPROFILE.csv", row.names = 1)
 
-mus <- read.csv("permutedmeans.csv", row.names = 1)
-sig <- read.csv("permutesd.csv", row.names = 1)
 ```
 
 ```{r getDATA}
@@ -206,45 +253,83 @@ motfreq <- motif_counter(web.graphs)
 kable(motfreq, format = "pandoc")
 ```
 
-The following code runs the null model analysis for the 50 food webs. First, each of the fifty webs are converted into binary adjacency matrices (`web.matrices`). Because the null model is a stochastic process the `set.seed(10)` allows for reproducible results. The code then loops through the list of adjacency matrices, generating 1000 permuted versions. The subgraphs are counted in each permuted matrix, and stored in a list (`p.mot`).   
-
+The following code runs the null model analysis for the 50 food webs. First, each of the fifty webs are converted into binary adjacency matrices (`web.matrices`).    
 ```{r eval = F}
 web.matrices <- lapply(web.graphs, get.adjacency, sparse = F)
-
-set.seed(10)
-pmot <- list()
-
-for(i in 1:length(web.matrices)){
-  p <- permutes_rc(web.matrices[[i]], 1000)
-  g <- lapply(p, graph.adjacency)
-  pmot[[i]] <- motif_counter(g)
-  print(i)
-}
 ```
+
+The first null model, the Curveball algorithm can be applied to all 50 webs in parallel. This code starts by registering a cluster utilizing 1 less than the number of cores on the computer (for this paper it was 7 cores). It then creates set of 30000 matrices and returns a list (length equal to the number of webs, 50 in this case) of dataframes of motif frequences.  
+
+```{r, eval = F}
+cl <- makeCluster(detectCores()-1)
+clusterExport(cl, c("web.adj", "motif_counter", "curve_ball", "curving"))
+registerDoSNOW(cl)
+randos <- parLapply(cl, web.adj, curving, n = 30000)
+stopCluster(cl)
+```
+
 
 Once subgraph counts have been obtained, the mean and standard deviation for each subgraph are computed. Z-scores are then computed as described in the methods section:  
 $$
 z_i = \frac{x_i - \overline{x}}{\sigma}
 $$
-In cases where there were no occurences of a subgraph (standard deviation = 0) `NaN` is produced following the appllication of the above formula. In these cases I have replaced the `NaN` with 0. The normalized profile was then computed (as desribed in the methods):  
+The normalized profile was then computed (as desribed in the methods):  
 $$
 n_i = \frac{z_i}{\sqrt{\sum{z_j^2}}}
 $$
 
 ```{r eval = F}
-mus <- t(sapply(pmot, function(x){colMeans(x)}))
-sig <- t(sapply(pmot, function(x){apply(x, 2, sd)}))
+means <- t(sapply(randos, colMeans))
+stdevs <- t(sapply(randos, function(x){apply(x, 2, sd)}))
+
+motfreq <- motif_counter(web.graphs)
+
+zscore <- (motfreq - means)/stdevs
+
+# Normalized z-scores
+zscore.norm <- t(apply(zscore, 1, function(x){x/sqrt(sum(x^2, na.rm = T))}))
 ```
 
-```{r}
-z <- (motfreq - mus)/sig
-zmat <- as.matrix(z)
-zmat[is.nan(zmat)] <- 0
-profile <- apply(zmat, 2, function(x){x/sqrt(rowSums(zmat^2))})
+Below is the code used to run the Curveball algorithm with the additional constraints described above. *Note this can take a very long time to run*
+```{r eval = F}
+# Use the filepath.sink variable to set the path for
+# storing the sink information 
+filepath.sink <- my.sink.path
+# Use the filepath.data variable to set the location for 
+# storing the dataframes of motif frequencies for each web
+filepath.data <- my.data.path
+
+cl <- makeCluster(detectCores()-1)
+clusterExport(cl, c("web.adj", "motif_counter", "curve_ball", "nd", "aaply", "filepath"))
+registerDoSNOW(cl)
+system.time(
+randos.t3 <- foreach(i = 1:length(web.adj)) %dopar% {
+  sink(file = paste(filepath.sink, names(web.adj[i]), ".txt", collapse = ""))
+  motfreq <- dblcan.curve(web.adj[[i]], iter = 30000)
+  print(motfreq)
+  sink()
+  write.csv(motfreq, file = paste(filepath.data, names(web.adj[i]), ".csv", collapse = ""))
+  return(motfreq)
+}
+)
+stopCluster(cl)
+```
+
+The normalized z-score profile can be calculated the same as above: 
+```{r eval = F}
+means.t <- t(sapply(randos.t3, colMeans))
+stdevs.t <- t(sapply(randos.t3, function(x){apply(x, 2, sd)}))
+
+motfreq <- motif_counter(web.graphs)
+
+zscore.t <- (motfreq - means.t)/stdevs.t
+
+# Normalized z-scores
+zscore.N <- t(apply(zscore.t, 1, function(x){x/sqrt(sum(x^2, na.rm = T))}))
 ```
 
 
-**Figure 1a** is then just a boxplot of the above object `profile`, reordered according to decreasing quasi sign-stability (see below).   
+**Figure 1** is then a boxplot of the above normalized z-scores, reordered according to decreasing quasi sign-stability (see below). When using the modified Curveball algorithm, those webs that have no double links produce `NaN` when computing the z-score for those motifs. These are ignored in **Figure 1**, and the z-scores presented are with the `NaN`s  removed.   
 
 ## Determining Quasi Sign-Stability  
 
@@ -267,31 +352,124 @@ sorted <- sort(mot.qss, decreasing = T)
 sorted
 ```
 
-### Correlation  
-Compute the correlation between QSS and median z-score  
-```{r cor}
-med.z <- apply(zmat[,names(sorted)], 2, median)
+### Robustness to assumption of double link positives
+I assumed that if there was a double link in the subgraph, that both the effect of the predator on the prey and the effect of the prey on the predator were positive, a (+/+) rather than a (+/-). Here I repeat the analysis described above, but instead assuming that the relative effects correspond to a (-/-). 
 
-cor.test(sorted, med.z)
+```{r, cache = T}
+mot.lst2 <- lapply(mot.lst, function(x){
+  for(i in 1:nrow(x)){
+    for(j in 1:ncol(x)){
+      if(x[i,j] == 1 && x[j,i] == 1){x[i,j] <- x[i,j]*-1; x[j,i] <- x[j,i]*-1}else{next}
+    }
+  }
+  return(x)
+})
+
+set.seed(15)
+
+n <- 10000
+mot.stab2 <- eig.analysis(n, mot.lst2)
+colnames(mot.stab2) <- names(mot.lst2)
+
+mot.qss2 <- apply(mot.stab2, 2, function(x){sum(x<0)/n})
+sorted2 <- sort(mot.qss2, decreasing = T)
+sorted2
 ```
 
+### Robustness to assumption of matrix fill distributions
+I also tested how quasi sign-stability of the different subgraphs changed when varying the assumption of the relative impact of the predator on its prey and the prey on its predator. 
+
+I tested 7 additional distributions (all uniform) with different magnitudes. 
+```{r warning=FALSE}
+params.u <- data.frame(pred1 = c(0, 0, 0, 0, 0, 0, 0, 0), pred2 = c(10, 10, 10, 10, 10, 5, 3, 1), 
+                       prey1 = c(-10, -5, -1, -.1, -.01, -1, -1, -1), prey2 = c(0, 0, 0, 0, 0, 0, 0, 0))
+parvals <- factor(paste(params.u[,2], params.u[,3], sep = "/"), 
+                  levels = c("1/-1", "3/-1", "5/-1", "10/-1", "10/-0.01", "10/-0.1", "10/-1", "10/-5", "10/-10"))
+```
+
+Below is a function to take in the different parameters for the distributions and fill a matrix accordingly. 
+```{r}
+eigen_unif <- function(m, iter, params, self = -1){
+  # For when I want to use uniform distribution
+  # Params is dataframe of min and max for relative impact of prey on pred 
+  ## and pred on prey
+  ev <- c()
+  for(i in 1:iter){
+    m1 <- apply(m, c(1,2), function(x){
+      if(x==1){runif(1, params$pred1, params$pred2)}else if(x==-1){runif(1, params$prey1, params$prey2)} else{0}
+    })
+    diag(m1) <- self
+    ev[i] <- max(Re(eigen(m1)$values)) 
+  }
+  return(ev)
+}
+```
+
+The following code loops through the dataframe of distributions and computes quasi sign-stability
+```{r cache = T}
+test <- matrix(nrow = nrow(params.u), ncol = length(mot.lst))
+for(i in 1:nrow(params.u)){
+  eigen.test <- lapply(mot.lst, eigen_unif, iter = 10000, 
+                       params = params.u[i,], self = runif(3, -1, 0))
+  qss.test <- lapply(eigen.test, function(x){
+    sum(x < 0) / length(x)
+  })
+  test[i,] <- unlist(qss.test)
+}
+```
+
+
+### Figure A1
+
+```{r warning=F}
+colnames(test) <- c("s1", "s2", "s3", "s4", "s5", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8")
+test <- data.frame(test, parvals)
+dat1 <- melt(test[,c(names(sorted),"parvals")])
+
+ggplot(dat1, aes(x = variable, y = value)) + geom_point() + facet_wrap(~parvals, ncol = 4) + theme_bw() + xlab("Subgraph") + ylab("Quasi Sign-Stability")
+```
+**Figure A1: Robustness of quasi sign-stability to different distributions used to fill the random Jacobian matrix. Facet labels represent the maximum impact of the prey on the predator population (positive number) and maximum impact of the predator on the prey population (negative number)**
 
 
 # Code for the figures
 
-```{r}
-plot.df <- melt(profile[,names(sorted)])
-
-fplot <- ggplot(plot.df, aes(x = Var2, y = value)) + geom_boxplot()
-fplot <- fplot + geom_hline(aes(yintercept = 0), lty = 2, col = "red")
-fplot <- fplot + theme_bw()
-fplot + xlab("Subgraph") + ylab("Normalized Z-score")
+## Figure 1
+```{r fig.height = 1, fig.width = 7}
+par(mfrow = c(1, 13), mar = c(.2, .2, .2, .2))
+for(i in 1:13){
+  plot.igraph(graph.adjacency(mot.lst[[which(names(mot.lst) == names(sorted[i]))]]), layout = layout.circle, edge.arrow.size = .5, 
+              vertex.size = 30, vertex.color = "black", vertex.label = NA, frame = T, edge.width = 2, edge.color = "darkslategray4")
+  text(-.25,0,names(sorted[i]), cex = 1.5)
+}
 ```
 
+
+## Figure 2
+```{r echo = F}
+z.both <- read.csv("C:/Users/borre_000/Desktop/GitHub/Subgraph-Stability/zboth.csv", row.names = 1)
+```
+
+
+```{r eval = F}
+z1 <- cbind(Model = factor("Curveball"), melt(zscore.norm[,names(sorted)]))
+z2 <- cbind(Model = factor("Double"), melt(zscore.N[,names(sorted)]))
+
+z.both <- rbind(z1, z2)
+ggplot(z.both, aes(x = Var2, y = value, fill = Model)) + geom_boxplot() + xlab("Subgraph") + ylab("Normalized Profile") + theme_bw() 
+```
+
+```{r echo = F}
+z.both$Var2 <- factor(z.both$Var2, levels = names(sorted))
+ggplot(z.both, aes(x = Var2, y = value, fill = Model)) + geom_boxplot() + xlab("Subgraph") + ylab("Normalized Profile") + theme_bw()
+```
+
+## Figure 3
 ```{r}
 sort.df <- melt(sorted)
 
 qssplot <- ggplot(sort.df, aes(x = 1:13, y = value)) + geom_point(shape = 19, size = 3) + theme_bw()
 qssplot + xlab("Subgraph") + ylab("Quasi Sign-Stability") + scale_x_discrete(limits=names(sorted))
 ```
+
+
 

@@ -1,11 +1,10 @@
 base
-datasets
+doSNOW
+foreach
 ggplot2
-graphics
-grDevices
 igraph
+iterators
 knitr
-methods
+plyr
 reshape2
-stats
-utils
+snow
